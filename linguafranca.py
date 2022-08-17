@@ -18,7 +18,7 @@ def printLangs(lang):
                     if 'list languages' is typed, the program cycles.
 
     Returns:
-        lang: if user types anything besides 'list languages' the phrase they typed is returned.
+        lang (str): if user types anything besides 'list languages' the phrase they typed is returned.
     """
     #every time list languages is typed in, program comes back to this command
     #this repeats until a new entry is given, and returns if it is entered again
@@ -39,13 +39,23 @@ def printLangs(lang):
     return lang
 
 def getLang():
-    cont = 1
-    while cont:
-        paren_langs = {'Mandarin chinese':'Chinese (simplified)','Traditional taiwan':'Chinese (traditional)','Burmese':'Myanmar (burmese)'}
-        print('To get a list of all accepted languages, type "list languages"')
-        lang = input('Enter the name of the language you want to learn: ').capitalize()
+    """Get the language the user wants to learn as both the name of the language and its language code in googletrans
 
-        #print all languages
+    Returns:
+        lcode,lang (tuple): tuple containing the language code and name of the user-specified language
+    """
+    #continue until the user inputs a language they want to use or exits
+    cont = 'Yes'
+    while cont.lower() != 'exit':
+
+        #dictionary for the values that do not translate perfectly between language lists
+        paren_langs = {'Mandarin chinese':'Chinese (simplified)','Traditional taiwan':'Chinese (traditional)','Burmese':'Myanmar (burmese)'}
+        
+        #get language name from the user
+        lang = input('Enter the name of the language you want to learn.\n'
+                     '(to get a list of all accepted languages, type "list languages")\n').capitalize()
+
+        #print all languages if prompted
         if lang == 'List languages':
             lang = printLangs(lang)
 
@@ -53,15 +63,18 @@ def getLang():
         if lang in paren_langs:
             lang = paren_langs[lang]
 
-        #assign language code for selected language (inaccesible by gTTS dictionary, must be done through googletranslate)
+        #assign language code for selected language (inaccesible by gTTS dictionary, must be done through googletrans)
         if lang in gt.lang.tts_langs().values() or lang in paren_langs.values():
             lcode = go.LANGCODES[lang.lower()]
-            if int(input(f'You have chosen: {lang}. Is this correct?\nYes(1) or No(0): ')): return lcode,lang
-            else:
-                cont = int(input('Try another language (1) or exit(0)? '))
 
+            #ask the user if they would like to continue with this language; continue if so and repeat prompts if not
+            if input(f'You have chosen: {lang}. Is this correct? ("Yes" or "No"): ').lower() != 'no': return lcode,lang
+            else:
+                cont = input('Try another language ("retry") or "exit"? ')
+
+        #if language given is unrecognized, ask again or close program based on user input
         else: 
-            cont = int(input(f'"{lang}" not recognized. Try another language (1) or exit(0)? '))
+            cont = input(f'"{lang}" not recognized. Try another language ("retry") or "exit"? ')
     exit()
 
 def translateMessage(code):
@@ -69,8 +82,9 @@ def translateMessage(code):
     if path.exists(fname):remove(fname)
     #translating message
     message = input('Enter the phrase you would like to translate: ')
+    print(f'"{message}" becomes...', end=' ')
     trans_message = tr.translate(message,src='en',dest=code)
-    print(f'{message} becomes: {trans_message.text}')
+    print(f'"{trans_message.text}"')
 
     #use translation text to save spoken translation as mp3
     taudio = gt.gTTS(text=trans_message.text, lang=lcode)
@@ -99,7 +113,7 @@ def pronounce(message,file):
         try:
             sptext = rc.recognize_google(speech,language=lcode)
             print(f'I heard: {sptext}')
-            if sptext == message.capitalize().strip(punctuation):
+            if sptext.lower() == message.lower().strip(punctuation):
                 print('Great job!')
             else: print('Not quite there yet!')
         except spr.UnknownValueError:
