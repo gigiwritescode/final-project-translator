@@ -2,7 +2,8 @@ import googletrans as go
 import gtts as gt
 from playsound import playsound
 import speech_recognition as spr
-import os
+from time import sleep
+from os import path, remove
 from string import punctuation
 
 tr = go.Translator()
@@ -65,7 +66,7 @@ def getLang():
 
 def translateMessage(code):
     fname = 'trans.mp3'
-    if os.path.exists(fname):os.remove(fname)
+    if path.exists(fname):remove(fname)
     #translating message
     message = input('Enter the phrase you would like to translate: ')
     trans_message = tr.translate(message,src='en',dest=code)
@@ -120,7 +121,7 @@ def dispMenu(lang,msg):
 
     
 
-print('Hello! Welcome to LingaFranca!')
+print('Hello! Welcome to LinguaFranca.')
 #get language on startup
 lcode,language = getLang()
 #get first translation
@@ -142,9 +143,10 @@ while choice:
     elif choice == 3:
         playTranslation(trfile)
     elif choice == 4:
-        pronounce(translation,trfile)        
+        pronounce(translation,trfile) 
+    sleep(1.5) 
     choice = dispMenu(language,translation)
     print()
-print('Closing LingaFranca... Goodbye!')
 
+print('Closing LinguaFranca... Goodbye!')
 exit()
