@@ -9,14 +9,31 @@ tr = go.Translator()
 rc = spr.Recognizer()
 
 def printLangs(lang):
-    """Print all languages available for the program to use (based on )
+    """ Print all languages available for the program to use
+        (based on google tts language availability, since there are fewer languages).
+
+    Args:
+        lang (str): name of the language the user types in.
+                    if 'list languages' is typed, the program cycles.
+
+    Returns:
+        lang: if user types anything besides 'list languages' the phrase they typed is returned.
     """
+    #every time list languages is typed in, program comes back to this command
+    #this repeats until a new entry is given, and returns if it is entered again
     while lang == 'List languages':
         print('Printing all accepted languages...')
-        for language in gt.lang.tts_langs().values():
+
+        #prints every language from gTTS that is also accepted by googletrans
+        for language in gt.lang.tts_langs().values(): 
             if language.lower() in go.LANGCODES:print('>',language)
-        print('>Mandarin Chinese\n>Traditional Taiwan (type: Chinese (Traditional))')   
+
+        #language codes between gTTS and googletrans are the same for "Mandarin Chinese" and "Traditional Taiwan" Chinese
+        #but the terms used for the languages are different, so they are added to the list separately
+        print('>Mandarin Chinese\n>Traditional Taiwan')   
         print('End of languages.\n')
+
+        #request language again
         lang = input('Enter the name of the language you want to learn: ').capitalize()
     return lang
 
@@ -103,7 +120,7 @@ def dispMenu(lang,msg):
 
     
 
-print('Hello! Welcome to this LingaFranca!\n')
+print('Hello! Welcome to LingaFranca!')
 #get language on startup
 lcode,language = getLang()
 #get first translation
