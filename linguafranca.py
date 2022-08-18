@@ -1,10 +1,11 @@
+from os import path, remove
+from time import sleep
+from string import punctuation
+
 import googletrans as go
 import gtts as gt
-from playsound import playsound
 import speech_recognition as spr
-from time import sleep
-from os import path, remove
-from string import punctuation
+from playsound import playsound
 
 #create translate and recognize objects used on phrases
 tr = go.Translator()
