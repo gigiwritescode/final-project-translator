@@ -2,10 +2,6 @@
 program for translator tool Lingua Franca
 
 to do:
-> docstrings and comments
-
-> change navigation inputs from 1's and 0's to keywords
-
 > make presentation!!
 
 > figure out how to print language of current phrase or remember
