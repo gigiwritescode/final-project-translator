@@ -6,6 +6,7 @@ from time import sleep
 from os import path, remove
 from string import punctuation
 
+#create translate and recognize objects used on phrases
 tr = go.Translator()
 rc = spr.Recognizer()
 
@@ -31,7 +32,7 @@ def printLangs(lang):
 
         #language codes between gTTS and googletrans are the same for "Mandarin Chinese" and "Traditional Taiwan" Chinese
         #but the terms used for the languages are different, so they are added to the list separately
-        print('>Mandarin Chinese\n>Traditional Taiwan')   
+        print('> Mandarin Chinese\n> Traditional Taiwan')   
         print('End of languages.\n')
 
         #request language again
@@ -61,16 +62,20 @@ def getLang():
 
         #reassign certain names that don't transfer perfectly between language lists
         if lang in paren_langs:
+            dispLang = ' '.join([word.capitalize() for word in lang.split(' ')])
             lang = paren_langs[lang]
 
         #assign language code for selected language (inaccesible by gTTS dictionary, must be done through googletrans)
         if lang in gt.lang.tts_langs().values() or lang in paren_langs.values():
             lcode = go.LANGCODES[lang.lower()]
 
+            #print the language recognized based on language codes for user input
+            if lang in paren_langs.values(): print(f'You have chosen: {dispLang}.',end=' ')
+            else: print(f'You have chosen: {lang}.',end=' ')
+            
             #ask the user if they would like to continue with this language; continue if so and repeat prompts if not
-            if input(f'You have chosen: {lang}. Is this correct? ("Yes" or "No"): ').lower() != 'no': return lcode,lang
-            else:
-                cont = input('Try another language ("retry") or "exit"? ')
+            if input('Is this correct? "Yes" or "No": ').lower() != 'no': return lcode,lang
+            else: cont = input('Try another language ("retry") or "exit"? ')
 
         #if language given is unrecognized, ask again or close program based on user input
         else: 
@@ -78,89 +83,140 @@ def getLang():
     exit()
 
 def translateMessage(code):
-    fname = 'trans.mp3'
+    """Take translated phrase and create an audio reading as an mp3 file
+
+    Args:
+        code (str): language code for user-specified language
+
+    Returns:
+        trans_message.text,fname (tuple): tuple containing the translated message itself
+                                          and the path of the audio file the translation is saved under
+    """
+    fname = 'trans.mp3' #random name set for storing the audio; I preferred using it as a variable
+    #if there is already a translated message being stored, delete it to create a new one
     if path.exists(fname):remove(fname)
-    #translating message
+
+    #get message from the user
     message = input('Enter the phrase you would like to translate: ')
     print(f'"{message}" becomes...', end=' ')
+
+    #translate user's message (googletrans) and print it out
     trans_message = tr.translate(message,src='en',dest=code)
     print(f'"{trans_message.text}"')
+    sleep(1.5) #delay so translation can be read before anything new prints out
 
-    #use translation text to save spoken translation as mp3
+    #use translation text to save spoken translation as mp3 (gTTS)
     taudio = gt.gTTS(text=trans_message.text, lang=lcode)
     taudio.save(fname)
 
+    #return translation as text and audio file
     return trans_message.text,fname
 
 def playTranslation(file):
+    """play saved translation until user continues
+
+    Args:
+        file (str): path to saved translation reading mp3
+    """
     #play translation until the user wants to continue
-    cont = 1
-    while cont:
+    cont = 'yes'
+    while cont.lower() != 'no':
         print('Playing translation...')
         playsound(file)
-        cont = int(input('Replay? Yes(1) or No(0): '))
+        cont = input('Replay? "Yes" or "No": ')
 
 def pronounce(message,file):
+    """Plays the translated phrase, listens to the user try to repeat it,
+       and tells them if they repeated it correctly or not
+
+    Args:
+        message (str): TRANSLATION of the user-given phrase
+        file (str): path to the mp3 audio file of the tts translation
+    """
     #record and evaluate user repeating phrase until they no longer want to try it
-    cont = 1
-    while cont:
-        print('Playing phrase...')
+    cont = 'yes'
+    while cont != 'no':
+        #play and print the translation to the user
+        print('Playing phrase...',end=' ')
         playsound(file)
         print(f'"{message}"')
+
+        #use default microphone to listen to user
         with spr.Microphone() as source:
             print('Try to repeat!')
-            speech = rc.listen(source)
+            speech = rc.listen(source,timeout=10,phrase_time_limit=10)
         try:
+            #use google speech api to recognize language based on saved language code
             sptext = rc.recognize_google(speech,language=lcode)
+
+            #print what was heard and respond accordingly based on whether what was heard matches the translation
             print(f'I heard: {sptext}')
             if sptext.lower() == message.lower().strip(punctuation):
                 print('Great job!')
             else: print('Not quite there yet!')
+
+        #if audio isn't discernible, give possible reasons why based on error gotten
         except spr.UnknownValueError:
             print('Utterly unintelligible! I heard nothing :(')
         except spr.RequestError:
             print(  'Either speech recognition failed, key not recognized, or there is no internet connection.\n'
                     'Try to check these areas before attempting to speak any new phrases')
-        cont = int(input('Would you like to try again? Yes(1) or No(0) '))
+        
+        #ask the user if they would like to go again or continue
+        cont = input('Would you like to try again? "Yes" or "No": ').lower()
 
 def dispMenu(lang,msg):
-    menu = ('\nWhat would you like to do now?\n'
-        f'\t1: Select new language (Current language: {lang})\n'
-        f'\t2: Translate new phrase (Current phrase: "{msg}")\n'
-        '\t3: Play current phrase\n'
-        '\t4: Try current phrase (Will not work if *current phrase* is not in *current language*!)\n'
-        '\t0: Exit\n'
-        'Enter the number of your desired action: ')
-    return int(input(menu))
+    """display menu of options to the user (current values in program update whenever called)
 
-    
+    Args:
+        lang (str): last language chosen by the user
+        msg (str): last translation the user created
 
+    Returns:
+        menu (str): keyword given by the user based on given menu options
+    """
+    menu = input('\nWhat would you like to do now?\n'
+        f'\t"Language": Select new language (Current language: {lang})\n'
+        f'\t"Translate": Translate new phrase (Current phrase: "{msg}")\n'
+        '\t"Play": Play current phrase\n'
+        '\t"Pronounce": Try current phrase (Will not work if *current phrase* is not in *current language*!)\n'
+        '\t"Exit": Close LinguaFranca program\n'
+        'Enter the keyword of your desired action: ')
+    return menu.lower()
+
+#start of the program run
 print('Hello! Welcome to LinguaFranca.')
-#get language on startup
+#get first language
 lcode,language = getLang()
 #get first translation
 translation,trfile = translateMessage(lcode)
 
-cont = int(input('Play translation? Yes(1) or No(0): '))
-if cont: playTranslation(trfile)
+#play translation if prompted
+cont = input('Play translation? "Yes" or "No": ').lower()
+if cont != 'no': playTranslation(trfile)
 
-cont = int(input('Would you like to attempt this phrase? Yes(1) or No(0): '))
-if cont: pronounce(translation,trfile)
+#attempt pronunciation if prompted
+cont = input('Would you like to attempt this phrase? "Yes" or "No": ').lower()
+if cont != 'no': pronounce(translation,trfile)
 
-#continue to loop through steps of the translator until user closes it
+#continue to loop through parts of the translator until user closes it
 choice = dispMenu(language,translation)
-while choice:
-    if choice == 1:
+while choice != 'exit':
+    if choice == 'language':
         lcode,language = getLang()
-    elif choice == 2:
+    elif choice == 'translate':
         translation,trfile = translateMessage(lcode)
-    elif choice == 3:
+    elif choice == 'play':
         playTranslation(trfile)
-    elif choice == 4:
+    elif choice == 'pronounce':
         pronounce(translation,trfile) 
-    sleep(1.5) 
+    else:
+        print('Option not recognized, try again.')
+        sleep(1)
+    #get new choice from the user
     choice = dispMenu(language,translation)
     print()
-
+    
+#say goodbye and exit program
 print('Closing LinguaFranca... Goodbye!')
 exit()
